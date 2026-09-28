@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Counting Quest — A Forest Adventure</title>
+<style>
+  :root{
+    --moss:#5b7f5a; --moss-dark:#3f5c40; --cream:#f6f3e7; --sky:#cfe8e0;
+    --gold:#e8b95f; --coral:#e08a6b; --ink:#2f3b2c; --card:#ffffffee;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:inherit}
+  html{scroll-padding-top:env(safe-area-inset-top,0px); height:100%;}
+  body{
+    margin:0; min-height:100%;
+    font-family:'Georgia','Iowan Old Style',serif;
+    background:
+      radial-gradient(circle at 15% 10%, #d9ecd2 0%, transparent 40%),
+      radial-gradient(circle at 85% 15%, #cfe8e0 0%, transparent 45%),
+      linear-gradient(180deg,#eef6e9 0%, var(--cream) 60%, #e6ecd8 100%);
+    color:var(--ink);
+    display:flex; justify-content:center;
+  }
+  .wrap{width:100%; max-width:640px; padding:28px 18px 60px;}
+  .leaf{position:fixed; font-size:22px; opacity:.5; animation:drift 14s linear infinite;}
+  @keyframes drift{ from{transform:translateY(-10vh) rotate(0deg);} to{transform:translateY(110vh) rotate(360deg);} }
+
+  header{text-align:center; margin-bottom:18px;}
+  .badge{
+    display:inline-block; background:var(--moss); color:#fff; font-size:11px;
+    letter-spacing:2px; padding:5px 14px; border-radius:20px; text-transform:uppercase;
+  }
+  h1{font-size:clamp(28px,7vw,40px); margin:10px 0 4px; color:var(--moss-dark);}
+  .sub{color:#5c6b56; font-size:15px; margin:0;}
+
+  .panel{
+    background:var(--card); border-radius:22px; padding:26px 22px;
+    box-shadow:0 10px 30px rgba(63,92,64,.15); border:1px solid #ffffff90;
+  }
+
+  /* progress */
+  .progress-row{display:flex; align-items:center; gap:10px; margin-bottom:18px;}
+  .progress-track{flex:1; height:10px; background:#e3ead9; border-radius:10px; overflow:hidden;}
+  .progress-fill{height:100%; width:0%; background:linear-gradient(90deg,var(--gold),var(--coral)); transition:width .4s ease;}
+  .score-chip{
+    font-size:13px; font-weight:bold; color:var(--moss-dark); background:#eef6e5;
+    border:1px solid #cfe0c2; padding:6px 12px; border-radius:14px; white-space:nowrap;
+  }
+
+  .qnum{font-size:12px; letter-spacing:2px; color:var(--coral); text-transform:uppercase; font-weight:bold;}
+  .question{font-size:clamp(18px,4.6vw,22px); margin:8px 0 20px; line-height:1.4; color:var(--ink);}
+
+  .options{display:grid; gap:12px;}
+  .opt{
+    text-align:left; padding:14px 16px; border-radius:14px; border:2px solid #dfe6d3;
+    background:#fbfbf5; font-family:inherit; font-size:15.5px; color:var(--ink);
+    cursor:pointer; transition:transform .12s ease, border-color .2s, background .2s;
+  }
+  .opt:hover{border-color:var(--moss); transform:translateY(-2px);}
+  .opt.correct{background:#e4f3df; border-color:#6fa563; animation:pop .3s ease;}
+  .opt.wrong{background:#fbe2de; border-color:#d97a68; animation:shake .35s ease;}
+  .opt[disabled]{cursor:default;}
+  @keyframes pop{0%{transform:scale(1);}50%{transform:scale(1.03);}100%{transform:scale(1);}}
+  @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+
+  .feedback{margin-top:14px; font-size:14px; min-height:20px; color:var(--moss-dark); font-weight:bold;}
+
+  .nextBtn{
+    margin-top:18px; width:100%; padding:14px; border:none; border-radius:14px;
+    background:var(--moss); color:#fff; font-size:16px; font-weight:bold; cursor:pointer;
+    font-family:inherit; opacity:0; pointer-events:none; transition:opacity .25s;
+  }
+  .nextBtn.show{opacity:1; pointer-events:auto;}
+  .nextBtn:active{transform:scale(.98);}
+
+  .startBtn{
+    display:block; margin:22px auto 0; padding:14px 34px; border:none; border-radius:16px;
+    background:linear-gradient(90deg,var(--moss),var(--moss-dark)); color:#fff; font-size:17px;
+    font-family:inherit; font-weight:bold; cursor:pointer; box-shadow:0 8px 18px rgba(63,92,64,.3);
+  }
+
+  .storyImg{width:100%; text-align:center; font-size:52px; margin-bottom:8px;}
+
+  /* modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(47,59,44,.55); display:none;
+    align-items:center; justify-content:center; padding:20px; z-index:50;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:var(--cream); border-radius:24px; padding:32px 26px; max-width:420px; width:100%;
+    text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.3); animation:pop .35s ease;
+    border:3px solid var(--gold);
+  }
+  .modal h2{color:var(--moss-dark); margin:6px 0 2px; font-size:26px;}
+  .bigscore{font-size:56px; font-weight:bold; color:var(--coral); margin:10px 0;}
+  .bigscore span{font-size:22px; color:var(--moss-dark);}
+  .rank{font-size:15px; color:#5c6b56; margin-bottom:18px;}
+  .modalBtns{display:flex; gap:10px; margin-top:10px;}
+  .modalBtns button{
+    flex:1; padding:12px; border-radius:12px; border:none; font-family:inherit; font-weight:bold; cursor:pointer;
+  }
+  .retry{background:var(--moss); color:#fff;}
+  .close{background:#e3ead9; color:var(--ink);}
+
+  footer{text-align:center; margin-top:20px; font-size:12px; color:#7c8a76;}
+</style>
+</head>
+<body>
+<div class="leaf" style="left:8%;">🍃</div>
+<div class="leaf" style="left:70%; animation-delay:4s;">🍃</div>
+<div class="leaf" style="left:40%; animation-delay:8s;">🌿</div>
+
+<div class="wrap">
+  <header>
+    <span class="badge">Grade 12 · Finite Math</span>
+    <h1>Counting Quest 🌲</h1>
+    <p class="sub">A little forest adventure through the Counting Principles</p>
+  </header>
+
+  <div class="panel" id="panel">
+    <!-- INTRO SCREEN -->
+    <div id="intro">
+      <div style="text-align:center; margin-bottom:14px;">
+        <div style="font-size:12px; letter-spacing:2.5px; color:#2f7d74; font-weight:bold;">GRADE 12 – FINITE MATHEMATICS 1</div>
+        <div style="font-size:clamp(28px,8vw,38px); font-weight:bold; color:#17394a; line-height:1.1; margin:6px 0 8px;">Counting<br>Principles</div>
+        <div style="width:60px; height:4px; background:var(--coral); margin:0 auto 10px; border-radius:2px;"></div>
+        <div style="font-size:14px; color:#3f5c40;">Teacher: Mr Albert Gregory O. Calantas</div>
+      </div>
+      <div class="storyImg">🦉🌸🍂</div>
+      <p style="text-align:center; font-size:15.5px; line-height:1.6;">
+        Deep in the whispering woods, the old forest spirit needs your help counting
+        the paths, meals, and outfits of the village travelers. Answer <b>10 riddles</b>
+        correctly to earn <b>20 acorns of wisdom</b> and complete your quest!
+      </p>
+      <button class="startBtn" onclick="startQuiz()">Begin the Quest ✨</button>
+      <div style="text-align:center; margin-top:26px;">
+        <p style="font-size:12.5px; color:#7c8a76; margin-bottom:8px;">📱 Scan to open on your phone</p>
+        <div id="qrcode" style="display:inline-block; padding:10px; background:#fff; border-radius:14px; box-shadow:0 4px 12px rgba(63,92,64,.15);"></div>
+      </div>
+    </div>
+
+    <!-- QUIZ SCREEN -->
+    <div id="quiz" style="display:none;">
+      <div class="progress-row">
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="score-chip" id="scoreChip">🌰 0 / 20</div>
+      </div>
+      <div class="qnum" id="qnum">Riddle 1 of 10</div>
+      <div class="question" id="questionText"></div>
+      <div class="options" id="optionsBox"></div>
+      <div class="feedback" id="feedback"></div>
+      <button class="nextBtn" id="nextBtn" onclick="nextQuestion()">Next Riddle →</button>
+    </div>
+  </div>
+
+  <footer>🍄 Scan the QR code on the slide, or share this link with your classmates 🍄</footer>
+</div>
+
+<!-- RESULT MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div style="font-size:40px;" id="modalEmoji">🌟</div>
+    <h2 id="modalTitle">Quest Complete!</h2>
+    <div class="bigscore" id="bigscore">0<span> / 20</span></div>
+    <div class="rank" id="rankText"></div>
+    <div class="modalBtns">
+      <button class="retry" onclick="restartQuiz()">🔁 Try Again</button>
+      <button class="close" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+  try{
+    new QRCode(document.getElementById("qrcode"), {
+      text: "https://claude.ai/artifact/VK9RruDD8y62ErzNqGV36w",
+      width: 140, height: 140,
+      colorDark: "#3f5c40", colorLight: "#ffffff"
+    });
+  }catch(e){ console.error("QR generation failed", e); }
+</script>
+<script>
+const questions = [
+  {
+    q: "The forest spirit says: 'When two choices can NEVER happen together, use...' Which counting principle fits?",
+    options: ["Addition Principle", "Multiplication Principle", "Subtraction Principle", "Division Principle"],
+    correct: 0,
+    explain: "Correct! Mutually exclusive, 'either/or' choices call for the Addition Principle: n(A) + n(B)."
+  },
+  {
+    q: "A traveler must pick a hat, THEN a cloak, THEN a pair of boots — one after another. Which principle finds the total outfits?",
+    options: ["Addition Principle", "Multiplication Principle", "Counting Principle of Zero", "None of these"],
+    correct: 1,
+    explain: "Yes! Sequential, 'this-then-that' choices multiply together."
+  },
+  {
+    q: "The village inn offers 2 vegetarian dishes OR 5 meat dishes. How many total dish choices are there?",
+    options: ["10", "7", "3", "25"],
+    correct: 1,
+    explain: "2 + 5 = 7 total dish choices (Addition Principle)."
+  },
+  {
+    q: "The forest library has 18 story scrolls or 12 spell scrolls. How many scroll choices does a student have?",
+    options: ["6", "216", "30", "18"],
+    correct: 2,
+    explain: "18 + 12 = 30 scroll choices."
+  },
+  {
+    q: "The teahouse offers 8 sandwiches, 6 salads, and 5 soups — choose only ONE dish. How many meal choices in total?",
+    options: ["19", "240", "13", "17"],
+    correct: 0,
+    explain: "8 + 6 + 5 = 19 total meal choices."
+  },
+  {
+    q: "For the harvest feast, a guest chooses 1 of 2 starters, 1 of 3 mains, and 1 of 2 desserts (one of each). How many full meal combinations exist?",
+    options: ["7", "12", "6", "9"],
+    correct: 1,
+    explain: "2 × 3 × 2 = 12 combinations (Multiplication Principle, since it's starter AND main AND dessert)."
+  },
+  {
+    q: "A young witch picks 1 of 4 spellbooks, 1 of 3 wands, and 1 of 2 cloaks for her kit. How many different kits can she make?",
+    options: ["9", "24", "12", "20"],
+    correct: 1,
+    explain: "4 × 3 × 2 = 24 possible kits."
+  },
+  {
+    q: "A forester has 3 tunics, 2 pairs of trousers, and 2 pairs of boots — one of each per outfit. How many outfits are possible?",
+    options: ["7", "18", "12", "6"],
+    correct: 2,
+    explain: "3 × 2 × 2 = 12 outfits."
+  },
+  {
+    q: "For festival day, a child may join 1 of 4 art activities OR 1 of 3 game activities (not both). How many activity choices are there?",
+    options: ["12", "7", "1", "4"],
+    correct: 1,
+    explain: "4 + 3 = 7 activity choices — it's an 'or' situation."
+  },
+  {
+    q: "The travelling food cart offers ONE meal from: 5 rice meals, 4 noodle bowls, 3 sandwiches, 6 dumplings, or 2 salads. How many meal choices in total?",
+    options: ["20", "18", "240", "22"],
+    correct: 0,
+    explain: "5 + 4 + 3 + 6 + 2 = 20 meal choices (Addition Principle — choosing only ONE from many separate groups)."
+  }
+];
+
+let current = 0, score = 0, answered = false;
+const POINTS_PER_Q = 2;
+
+function startQuiz(){
+  document.getElementById('intro').style.display = 'none';
+  document.getElementById('quiz').style.display = 'block';
+  current = 0; score = 0;
+  loadQuestion();
+}
+
+function loadQuestion(){
+  answered = false;
+  const item = questions[current];
+  document.getElementById('qnum').textContent = `Riddle ${current+1} of ${questions.length}`;
+  document.getElementById('questionText').textContent = item.q;
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('nextBtn').classList.remove('show');
+  document.getElementById('progressFill').style.width = `${(current/questions.length)*100}%`;
+  document.getElementById('scoreChip').textContent = `🌰 ${score} / 20`;
+
+  const box = document.getElementById('optionsBox');
+  box.innerHTML = '';
+  item.options.forEach((opt, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.textContent = opt;
+    btn.onclick = () => selectAnswer(idx, btn);
+    box.appendChild(btn);
+  });
+}
+
+function selectAnswer(idx, btn){
+  if(answered) return;
+  answered = true;
+  const item = questions[current];
+  const allOpts = document.querySelectorAll('.opt');
+  allOpts.forEach(b => b.disabled = true);
+
+  if(idx === item.correct){
+    btn.classList.add('correct');
+    score += POINTS_PER_Q;
+    document.getElementById('feedback').innerHTML = `✅ Correct! +${POINTS_PER_Q} acorns — ${item.explain}`;
+  } else {
+    btn.classList.add('wrong');
+    allOpts[item.correct].classList.add('correct');
+    document.getElementById('feedback').innerHTML = `❌ Not quite — ${item.explain}`;
+  }
+  document.getElementById('scoreChip').textContent = `🌰 ${score} / 20`;
+  document.getElementById('nextBtn').classList.add('show');
+  document.getElementById('nextBtn').textContent = current === questions.length-1 ? '🏁 See My Score' : 'Next Riddle →';
+}
+
+function nextQuestion(){
+  current++;
+  if(current >= questions.length){
+    document.getElementById('progressFill').style.width = '100%';
+    showResult();
+  } else {
+    loadQuestion();
+  }
+}
+
+function showResult(){
+  document.getElementById('bigscore').innerHTML = `${score}<span> / 20</span>`;
+  let rank, emoji, title;
+  if(score >= 18){ rank = "Forest Sage — flawless counting mastery! 🍂"; emoji="🌟"; title="Quest Complete!"; }
+  else if(score >= 14){ rank = "Wise Wanderer — a strong grasp of counting! 🌿"; emoji="🎉"; title="Quest Complete!"; }
+  else if(score >= 8){ rank = "Curious Traveler — keep practicing the principles! 🌱"; emoji="🙂"; title="Quest Finished"; }
+  else { rank = "Apprentice Explorer — review Addition vs Multiplication and try again! 🍄"; emoji="🌦️"; title="Quest Finished"; }
+  document.getElementById('rankText').textContent = rank;
+  document.getElementById('modalEmoji').textContent = emoji;
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeModal(){
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function restartQuiz(){
+  closeModal();
+  document.getElementById('intro').style.display = 'block';
+  document.getElementById('quiz').style.display = 'none';
+}
+</script>
+</body>
+</html>
